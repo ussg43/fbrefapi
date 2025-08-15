@@ -43,6 +43,7 @@ func GetPlayerP90(w http.ResponseWriter, r *http.Request) {
 		Name:  (*tokenDetails).Name,
 		Stats: (*tokenDetails).GetP90(),
 	}
+	log.Println("blabla")
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
