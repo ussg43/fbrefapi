@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-
+	"strconv"
 
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
@@ -13,9 +13,8 @@ import (
 
 func main() {
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "4000"
-	}
+
+
 	log.SetReportCaller(true)
 	r := chi.NewRouter()
 	handlers.Handler(r)
