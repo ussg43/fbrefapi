@@ -11,7 +11,7 @@ func Handler(r *chi.Mux) {
 	r.Use(chimiddle.StripSlashes)
 
 	r.Route("/player", func(r chi.Router) {
-		// r.Use(middleware.Authorization)
+		//r.Use(middleware.Authorization)
 
 		r.Get("/p90", GetPlayerP90)
 		r.Get("/seasonal", GetPlayerSeasonal)

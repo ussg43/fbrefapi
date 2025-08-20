@@ -5,6 +5,7 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 
 	// "strings"
 	"github.com/gocolly/colly"
@@ -21,12 +22,17 @@ type Player struct {
 
 func GetUrl(name, club string) string {
 	var url string
+	name = strings.ReplaceAll(name, " ", "+")
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
 		colly.AllowedDomains("https://fbref.com", "fbref.com"),
 	)
 
 	target := fmt.Sprintf("https://fbref.com/en/search/search.fcgi?hint=%s&search=%s&pid=&idx=", name, name)
+
+	c.OnRequest(func(r *colly.Request) {
+		log.Println("visiting", r.URL.String())
+	})
 
 	c.OnResponse(func(r *colly.Response) {
 		log.Println(r.Request.URL)
@@ -59,7 +65,7 @@ func NewPlayer(name, club string) *Player {
 	url := GetUrl(name, club)
 	position := getPosition(url)
 	p := Player{Name: name, Position: position, Club: club, URL: url}
-
+	fmt.Printf("new player created: %s", name)
 	return &p
 }
 
