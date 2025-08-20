@@ -16,7 +16,7 @@ type Player struct {
 	Name     string
 	Position string
 	Club     string
-	URL   string
+	URL      string
 	Stats    map[string]float64
 }
 
@@ -49,8 +49,6 @@ func GetUrl(name, club string) string {
 			})
 		}
 	})
-
-	
 
 	c.Visit(target)
 	log.Println(url)
@@ -151,7 +149,7 @@ func (p *Player) GetP90() map[string]float64 {
 }
 
 func (p *Player) GetSeasonal(season string) map[string]float64 {
-	url := p.URL[0:38] + "all_comps"+p.URL[37:]+"-Stats---All-Competitions"
+	url := p.URL[0:38] + "all_comps" + p.URL[37:] + "-Stats---All-Competitions"
 	log.Println(url)
 	tableID := `table[id=stats_standard_collapsed]`
 	m := make(map[string]float64)
