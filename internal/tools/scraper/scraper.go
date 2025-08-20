@@ -62,6 +62,7 @@ func (P *Player) GetName() string {
 func NewPlayer(name, club string) *Player {
 	url := GetUrl(name, club)
 	position := getPosition(url)
+	log.Println(position)
 	p := Player{Name: name, Position: position, Club: club, URL: url}
 	fmt.Printf("new player created: %s", name)
 	return &p
@@ -86,7 +87,6 @@ func getPosition(Url string) string {
 	var post string
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
-		colly.AllowedDomains("https://fbref.com", "http://fbref.com", "fbref.com"),
 	)
 
 	c.OnRequest(func(r *colly.Request) {
