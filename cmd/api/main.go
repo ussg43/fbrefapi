@@ -16,7 +16,7 @@ func main() {
 	
 	fmt.Println("Starting API Service...")
 
-	err := http.ListenAndServe(":5656", r)
+	err := http.ListenAndServe(":8080", r)
 	if err != nil {
 		log.Error(err)
 	}

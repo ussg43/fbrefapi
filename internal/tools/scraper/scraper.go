@@ -17,11 +17,26 @@ type Player struct {
 	Position string
 	Club     string
 	URL      string
-	Stats    map[string]float64
 }
 
-func GetUrl(name, club string) string {
+func NewPlayer(name, club string) (*Player, error) {
+	url, err := GetUrl(name, club)
+	if err != nil {
+		return nil, err
+	}
+	position, err := getPosition(url)
+	if err != nil {
+		return nil, err
+	}
+	p := Player{Name: name, Position: position, Club: club, URL: url}
+	fmt.Printf("new player created: %s", name)
+	return &p, nil
+}
+
+func GetUrl(name, club string) (string, error) {
 	var url string
+	var err error
+	scraped := false
 	name = strings.ReplaceAll(name, " ", "+")
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
@@ -39,58 +54,53 @@ func GetUrl(name, club string) string {
 		if RUrl := r.Request.URL.String(); RUrl != target {
 			log.Println(RUrl)
 			url = RUrl
+			scraped = true
 		} else if club != "" {
 			c.OnHTML("div#players.current", func(h *colly.HTMLElement) {
 				h.ForEach("div.search-item", func(i int, e *colly.HTMLElement) {
 					if fuzzy.MatchFold(club, e.ChildText("div.search-item-team")) {
 						url = "https://fbref.com" + e.ChildAttr("div.search-item-url > a", "href")
+						scraped = true
 					}
 				})
 			})
 		}
 	})
-
 	c.Visit(target)
-	log.Println(url)
-	return url
-}
-
-func (P *Player) GetName() string {
-	return P.Name
-}
-
-func NewPlayer(name, club string) *Player {
-	url := GetUrl(name, club)
-	position := getPosition(url)
-	log.Println(position)
-	p := Player{Name: name, Position: position, Club: club, URL: url}
-	fmt.Printf("new player created: %s", name)
-	return &p
-}
-
-func Compare(p []*Player) string {
-	map1 := p[0].GetP90()
-	map2 := p[1].GetP90()
-	msg := ""
-
-	for key := range map1 {
-		if map1[key] > map2[key] {
-			msg += fmt.Sprintf("%s: **%.2f** - %.2f\n", key, map1[key], map2[key])
-		} else {
-			msg += fmt.Sprintf("%s: %.2f - **%.2f**\n", key, map1[key], map2[key])
-		}
+	log.Println("new url: " + url)
+	if !scraped{
+		err = ErrFetchURL
+		return "", err
 	}
-	return msg
+	return url, nil
 }
 
-func getPosition(Url string) string {
+
+
+// func Compare(p []*Player) string {
+// 	map1 := p[0].GetP90()
+// 	map2 := p[1].GetP90()
+// 	msg := ""
+
+// 	for key := range map1 {
+// 		if map1[key] > map2[key] {
+// 			msg += fmt.Sprintf("%s: **%.2f** - %.2f\n", key, map1[key], map2[key])
+// 		} else {
+// 			msg += fmt.Sprintf("%s: %.2f - **%.2f**\n", key, map1[key], map2[key])
+// 		}
+// 	}
+// 	return msg
+// }
+
+func getPosition(Url string) (string, error) {
 	var post string
+	var err error
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
 	)
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("visiting", r.URL.String())
+		log.Println("retrieving position at: ", r.URL.String())
 	})
 
 	c.OnHTML("div#all_similar", func(h *colly.HTMLElement) {
@@ -113,12 +123,18 @@ func getPosition(Url string) string {
 			post = ""
 		}
 	})
+	log.Println(post)
 
+	if post == ""{
+		err = ErrPositionNotFound
+		return "", err
+	}
 	c.Visit(Url)
-	return post
+	return post, nil
 }
 
-func (p *Player) GetP90() map[string]float64 {
+func (p *Player) GetP90() (map[string]float64, error) {
+	var err error
 	tableID := fmt.Sprintf(`table[id=scout_summary_%s]`, p.Position)
 	m := make(map[string]float64)
 
@@ -127,7 +143,7 @@ func (p *Player) GetP90() map[string]float64 {
 	)
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("visiting", r.URL.String())
+		log.Println("retrieving p90 stats at:", r.URL.String())
 	})
 
 	c.OnHTML(tableID, func(h *colly.HTMLElement) {
@@ -142,17 +158,24 @@ func (p *Player) GetP90() map[string]float64 {
 				}
 			}
 		})
+		if len(m) == 0{
+			err = ErrScrapeFailed
+		}
 	})
 
+	if err != nil{
+		return nil, err
+	}
 	c.Visit(p.URL)
-	return m
+	return m, nil
 }
 
-func (p *Player) GetSeasonal(season string) map[string]float64 {
+func (p *Player) GetSeasonal(season string) (map[string]float64, error) {
 	url := p.URL[0:38] + "all_comps" + p.URL[37:] + "-Stats---All-Competitions"
 	log.Println(url)
 	tableID := `table[id=stats_standard_collapsed]`
 	m := make(map[string]float64)
+	var err error
 
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
@@ -160,7 +183,7 @@ func (p *Player) GetSeasonal(season string) map[string]float64 {
 	)
 
 	c.OnRequest(func(r *colly.Request) {
-		log.Println("visiting lol", r.URL.String())
+		log.Println("retrieving seasonal stats at: ", r.URL.String())
 	})
 
 	c.OnHTML(tableID, func(h *colly.HTMLElement) {
@@ -175,8 +198,13 @@ func (p *Player) GetSeasonal(season string) map[string]float64 {
 				})
 			}
 		})
+		if len(m) == 0{
+			err = ErrScrapeFailed
+		}
 	})
-
+	if err != nil{
+		return nil, err
+	}
 	c.Visit(url)
-	return m
+	return m, nil
 }

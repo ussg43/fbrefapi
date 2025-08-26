@@ -31,17 +31,20 @@ func GetPlayerP90(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	var tokenDetails *scraper.Player
-	tokenDetails = scraper.NewPlayer(params.Name, params.Club)
-	if tokenDetails == nil {
-		api.InternalErrHandler(w)
+	tokenDetails, err := scraper.NewPlayer(params.Name, params.Club)
+	if err != nil {
+		api.RequestErrHandler(w, err)
 		return
 	}
-
+	stats, err := tokenDetails.GetP90()
+	if err != nil {
+		api.RequestErrHandler(w, err)
+		return
+	}
 	var response = api.PlayerResponse{
 		Code:  http.StatusOK,
 		Name:  (*tokenDetails).Name,
-		Stats: (*tokenDetails).GetP90(),
+		Stats: stats,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
@@ -72,17 +75,21 @@ func GetPlayerSeasonal(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	var tokenDetails *scraper.Player
-	tokenDetails = scraper.NewPlayer(params.Name, params.Club)
-	if tokenDetails == nil {
-		api.InternalErrHandler(w)
+	tokenDetails, err := scraper.NewPlayer(params.Name, params.Club)
+	if err != nil {
+		api.RequestErrHandler(w, err)
+		return
+	}
+	stats, err := tokenDetails.GetSeasonal(params.Season)
+	if err != nil {
+		api.RequestErrHandler(w, err)
 		return
 	}
 
 	var response = api.PlayerResponse{
 		Code:  http.StatusOK,
 		Name:  (*tokenDetails).Name,
-		Stats: (*tokenDetails).GetSeasonal(params.Season),
+		Stats: stats,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
